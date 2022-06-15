@@ -7,7 +7,7 @@ android {
     compileSdk 32
 
     defaultConfig {
-        applicationId "com.babbangona.samplepocapplicationforcommunicationmicroservice"
+        applicationId "com.babbangona.communicationmicroservice"
         minSdk 21
         targetSdk 32
         versionCode 1

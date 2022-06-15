@@ -1,11 +1,18 @@
 package com.babbangona.communicationmicroservice
 
+import android.app.AlertDialog
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.babbangona.communicationmicroservice.api.CommunicationServiceRestApi
-import com.babbangona.samplepocapplicationforcommunicationmicroservice.databinding.ActivityMainBinding
+import com.babbangona.communicationmicroservice.databinding.ActivityMainBinding
+import com.google.android.material.snackbar.Snackbar
+
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
@@ -18,10 +25,28 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         binding.button.setOnClickListener {
-            if (validateUserInput())
-                sendShortMessagingService()
+            if (validateUserInput()) {
+                if (checkForInternet(this)) {
+                    sendShortMessagingService()
+                    val builder = AlertDialog.Builder(this)
+                    builder.setTitle(R.string.dialogTitle)
+                    builder.setMessage(getString(R.string.dialogMessage, phoneNumbers.toString()))
+                    builder.setPositiveButton("Ok") { dialogInterface, which ->
+                        binding.editTextMessage.text?.clear()
+                        binding.editTextPhone.text?.clear()
+
+                    }
+                    builder.setCancelable(false)
+                    builder.show()
+                } else {
+                    Snackbar.make(binding.root, "No internet connection", Snackbar.LENGTH_SHORT)
+                        .show()
+                }
+
+            }
         }
     }
+
 
     private fun validateUserInput(): Boolean {
         message = binding.editTextMessage.text.toString()
@@ -48,7 +73,7 @@ class MainActivity : AppCompatActivity() {
         if (message.isEmpty()) {
             Toast.makeText(
                 applicationContext,
-                "Enter a valid message",
+                "Enter your message",
                 Toast.LENGTH_SHORT
             ).show()
             return false
@@ -63,18 +88,20 @@ class MainActivity : AppCompatActivity() {
             val communicationServiceRequest = CommunicationServiceRequest(message, phoneNumber)
             apiService.sendShortMessageService(communicationServiceRequest) {
                 Log.d("testttt", "onResponse: " + it.toString())
-                if (it?.status == "failed") {
-                    Toast.makeText(
-                        applicationContext,
-                        "Message sending to $phoneNumber failed",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                } else {
+                if (it?.status == "success") {
                     Toast.makeText(
                         applicationContext,
                         "Message successfully sent to $phoneNumber",
                         Toast.LENGTH_SHORT
                     ).show()
+
+                } else {
+                    Toast.makeText(
+                        applicationContext,
+                        "Message sending to $phoneNumber failed",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
                 }
             }
         }
@@ -87,6 +114,32 @@ class MainActivity : AppCompatActivity() {
             formattedNumbers.add(number.trim())
         }
         return formattedNumbers
+    }
+
+    private fun checkForInternet(context: Context): Boolean {
+
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+
+            val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+            return when {
+
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+
+                else -> false
+            }
+        } else {
+
+            @Suppress("DEPRECATION") val networkInfo =
+                connectivityManager.activeNetworkInfo ?: return false
+            @Suppress("DEPRECATION")
+            return networkInfo.isConnected
+        }
     }
 
 

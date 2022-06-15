@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "sample poc application for communication microservice"
+rootProject.name = "communication microservice"
 include ':app'
